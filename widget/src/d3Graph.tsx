@@ -404,7 +404,7 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
         {...defaultEdgeAttrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
         {...e.attrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
         ref={pathRef}
-        fill="none"
+        fill="context-stroke"
       />
       <g ref={labelGRef}>
         {e.label && <HtmlDisplay html={e.label} />}
