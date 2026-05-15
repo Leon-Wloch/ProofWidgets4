@@ -1,4 +1,8 @@
-# ProofWidgets
+# ProofWidgets Fork for Graphsee
+
+This is a fork of [ProofWidgets4](https://github.com/leanprover-community/ProofWidgets4#) at tag v0.0.91 for use by the Lean Graphsee library.
+
+The only changes made are in widget/src/d3graph.tsx, where we change the edges to be path elements instead of line elements, allowing for self-loops. 
 
 ProofWidgets is a library of user interface components for [Lean 4](https://leanprover.github.io/). It
 supports:
