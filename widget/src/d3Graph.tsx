@@ -324,9 +324,11 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
     </g>
   }
 
+  /*Modified by Leonard Wloch on 15/5/2026
+    Changes: made edges path elements to support self-loops */
   const EmbedEdge = ({e}: {e: Edge}) => {
     const eId = Edge.calcId(e)
-    const lineRef = React.useRef<SVGLineElement>(null)
+    const pathRef = React.useRef<SVGPathElement>(null)
     const labelGRef = React.useRef<SVGGElement>(null)
     React.useEffect(() => {
       const cb = () => {
@@ -338,9 +340,7 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
         const ySrc = vSrc.y || 0
         const xTgt = vTgt.x || 0
         const yTgt = vTgt.y || 0
-        if (lineRef.current) {
-          const alpha = Math.atan2(yTgt - ySrc, xTgt - xSrc)
-          // Compute the offset of the arrow endpoint from the vertex position.
+        if (pathRef.current) {
           const calcOffset = (v: SimVertex, alpha: number): number => {
             if ('rect' in v.boundingShape) {
               const a = v.boundingShape.rect.width/(2*Math.abs(Math.cos(alpha)))
@@ -351,15 +351,46 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
             }
             return 0
           }
-          d3.select(lineRef.current)
-            .attr('x1', xSrc + Math.cos(alpha) * calcOffset(vSrc, alpha))
-            .attr('y1', ySrc + Math.sin(alpha) * calcOffset(vSrc, alpha))
-            /* `+ 2` to accommodate arrowheads. */
-            .attr('x2', xTgt - Math.cos(alpha) * (calcOffset(vTgt, alpha) + 2))
-            .attr('y2', yTgt - Math.sin(alpha) * (calcOffset(vTgt, alpha) + 2))
+          // If edge is a self-loop we construct it using cubic bezier curve:
+          // https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/d#cubic_bézier_curve
+          if (e.source === e.target) {
+            const linkForce = forces.find((f): f is { link: ForceLinkParams } => 'link' in f)
+            const edgeLength = linkForce?.link?.distance ?? 125
+            const r = calcOffset(vSrc, 0)
+            const loopSize = edgeLength * 0.4
+            // Loop begins on right-side of vertex
+            const startX = xSrc + r
+            const startY = ySrc
+            // Loop ends on bottom of vertex
+            const endX   = xSrc
+            const endY   = ySrc + r
+            // Start control point
+            const scpX1  = xSrc + loopSize
+            const scpY1   = ySrc + r * 0.5
+            // End control point
+            const ecpX2   = xSrc + r * 0.5
+            const ecpY2   = ySrc + loopSize
+            d3.select(pathRef.current)
+              .attr('d', `M ${startX} ${startY} C ${scpX1} ${scpY1} ${ecpX2} ${ecpY2} ${endX} ${endY}`)
+            d3.select(labelGRef.current)
+            // Slight offset
+              .attr('transform', `translate(${xSrc + loopSize * 0.75}, ${ySrc + loopSize * 0.75})`)
+          }
+          // Otherwise edge is a straight path
+          else {
+            // This is the same logic as for the line element in the original Proofwidgets
+            // but changed to work for the path element.
+            const alpha = Math.atan2(yTgt - ySrc, xTgt - xSrc)
+            d3.select(pathRef.current)
+              .attr('d',
+                `M ${xSrc + Math.cos(alpha) * calcOffset(vSrc, alpha)} ` +
+                  `${ySrc + Math.sin(alpha) * calcOffset(vSrc, alpha)} ` +
+                `L ${xTgt - Math.cos(alpha) * (calcOffset(vTgt, alpha) + 2)} ` +
+                  `${yTgt - Math.sin(alpha) * (calcOffset(vTgt, alpha) + 2)}`)
+            d3.select(labelGRef.current)
+              .attr('transform', `translate(${(xSrc + xTgt) / 2}, ${(ySrc + yTgt) / 2})`)
+          }
         }
-        d3.select(labelGRef.current)
-          .attr('transform', `translate(${(xSrc + xTgt) / 2}, ${(ySrc + yTgt) / 2})`)
       }
       cb()
       state.current.tickCallbacks.set(cb, cb)
@@ -369,10 +400,11 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
       key={Edge.calcId(e)}
       onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
     >
-      <line
+      <path
         {...defaultEdgeAttrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
         {...e.attrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
-        ref={lineRef}
+        ref={pathRef}
+        fill="none"
       />
       <g ref={labelGRef}>
         {e.label && <HtmlDisplay html={e.label} />}
