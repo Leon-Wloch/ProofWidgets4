@@ -428,11 +428,11 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
             viewBox="0 0 10 10"
             refX="8"
             refY="5"
-            markerWidth="3"
-            markerHeight="3"
+            markerWidth="6"
+            markerHeight="6"
             orient="auto-start-reverse"
           >
-            <g stroke="context-stroke" fill="context-fill">
+            <g stroke="#333333" fill="context-stroke" strokeWidth="1">
               <path d="M 0 0 L 10 5 L 0 10 z" />
             </g>
           </marker>
